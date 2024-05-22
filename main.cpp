@@ -8,20 +8,22 @@
 #include <map>
 #include <sys/statvfs.h>
 
+using namespace std;
+
 GtkWidget *cpu_label, *ram_label, *rx_label, *tx_label, *disk_label, *temp_label;
 GtkWidget *cpu_progress, *ram_progress;
 GtkWidget *cpu_icon, *ram_icon, *network_icon, *disk_icon, *temp_icon;
 GtkWidget *cpu_graph, *ram_graph; 
 
 void readCPUUsage(unsigned long long &total_jiffies, unsigned long long &work_jiffies) {
-    std::ifstream file("/proc/stat");
-    std::string line;
+    ifstream file("/proc/stat");
+    string line;
 
-    std::getline(file, line);
+    getline(file, line);
     file.close();
 
-    std::istringstream iss(line);
-    std::string cpu;
+    istringstream iss(line);
+    string cpu;
     unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
 
     iss >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal;
@@ -45,19 +47,19 @@ double calculateCPUUsage() {
 }
 
 double readRAMUsage() {
-    std::ifstream file("/proc/meminfo");
-    std::string line;
+    ifstream file("/proc/meminfo");
+    string line;
 
     unsigned long mem_total = 0, mem_free = 0, buffers = 0, cached = 0;
 
-    while (std::getline(file, line)) {
-        if (line.find("MemTotal") != std::string::npos)
+    while (getline(file, line)) {
+        if (line.find("MemTotal") != string::npos)
             sscanf(line.c_str(), "MemTotal: %lu", &mem_total);
-        else if (line.find("MemFree") != std::string::npos)
+        else if (line.find("MemFree") != string::npos)
             sscanf(line.c_str(), "MemFree: %lu", &mem_free);
-        else if (line.find("Buffers") != std::string::npos)
+        else if (line.find("Buffers") != string::npos)
             sscanf(line.c_str(), "Buffers: %lu", &buffers);
-        else if (line.find("Cached") != std::string::npos)
+        else if (line.find("Cached") != string::npos)
             sscanf(line.c_str(), "Cached: %lu", &cached);
     }
 
@@ -68,17 +70,17 @@ double readRAMUsage() {
 }
 
 void readNetworkActivity(double &rx_bytes, double &tx_bytes) {
-    std::ifstream file("/proc/net/dev");
-    std::string line;
+    ifstream file("/proc/net/dev");
+    string line;
 
-    std::getline(file, line);
-    std::getline(file, line);
+    getline(file, line);
+    getline(file, line);
 
     rx_bytes = tx_bytes = 0.0;
 
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        std::string interface;
+    while (getline(file, line)) {
+        istringstream iss(line);
+        string interface;
         double receive, transmit;
 
         iss >> interface;
@@ -94,17 +96,17 @@ void readNetworkActivity(double &rx_bytes, double &tx_bytes) {
     file.close();
 }
 
-void readDiskActivity(std::map<std::string, unsigned long long> &read_bytes,
-                      std::map<std::string, unsigned long long> &write_bytes) {
-    std::ifstream file("/proc/diskstats");
-    std::string line;
+void readDiskActivity(map<string, unsigned long long> &read_bytes,
+                      map<string, unsigned long long> &write_bytes) {
+    ifstream file("/proc/diskstats");
+    string line;
 
     read_bytes.clear();
     write_bytes.clear();
 
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        std::string device;
+    while (getline(file, line)) {
+        istringstream iss(line);
+        string device;
         unsigned long long reads, read_sectors, writes, write_sectors;
 
         iss >> device >> device >> device; // skip first three columns
@@ -122,9 +124,9 @@ void readDiskActivity(std::map<std::string, unsigned long long> &read_bytes,
     file.close();
 }
 
-std::pair<double, double> calculateDiskSpeed() {
-    std::map<std::string, unsigned long long> read_bytes1, write_bytes1;
-    std::map<std::string, unsigned long long> read_bytes2, write_bytes2;
+pair<double, double> calculateDiskSpeed() {
+    map<string, unsigned long long> read_bytes1, write_bytes1;
+    map<string, unsigned long long> read_bytes2, write_bytes2;
 
     readDiskActivity(read_bytes1, write_bytes1);
     sleep(1);
@@ -134,7 +136,7 @@ std::pair<double, double> calculateDiskSpeed() {
     unsigned long long total_write_diff = 0;
 
     for (const auto &entry : read_bytes1) {
-        const std::string &device = entry.first;
+        const string &device = entry.first;
         total_read_diff += (read_bytes2[device] - read_bytes1[device]);
         total_write_diff += (write_bytes2[device] - write_bytes1[device]);
     }
@@ -146,7 +148,7 @@ std::pair<double, double> calculateDiskSpeed() {
 }
 
 double readCPUTemperature() {
-    std::ifstream file("/sys/class/thermal/thermal_zone0/temp");
+    ifstream file("/sys/class/thermal/thermal_zone0/temp");
     double temp;
 
     if (file.is_open()) {
@@ -159,16 +161,16 @@ double readCPUTemperature() {
     return temp / 1000.0; // The temperature is usually in millidegree Celsius
 }
 
-std::pair<double, double> readDiskSpaceUsage() {
-    std::ifstream file("/proc/mounts");
-    std::string line;
+pair<double, double> readDiskSpaceUsage() {
+    ifstream file("/proc/mounts");
+    string line;
 
     double total_space = 0.0;
     double used_space = 0.0;
 
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        std::string device, mount_point, fs_type;
+    while (getline(file, line)) {
+        istringstream iss(line);
+        string device, mount_point, fs_type;
         iss >> device >> mount_point >> fs_type;
 
         if (fs_type == "ext4" || fs_type == "xfs" || fs_type == "btrfs" || fs_type == "ntfs" || fs_type == "vfat") {
@@ -306,7 +308,7 @@ int main(int argc, char *argv[]) {
     ram_progress = gtk_progress_bar_new();
     gtk_box_pack_start(GTK_BOX(vbox), ram_progress, FALSE, FALSE, 0);
 
-    std::thread update_thread(update_labels);
+    thread update_thread(update_labels);
     update_thread.detach();
 
     gtk_widget_show_all(window);
